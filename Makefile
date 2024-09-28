@@ -1,27 +1,10 @@
 
-.PHONY: all clean
-all: env
+env: env.c script.ld
+	musl-gcc -Os -static \
+		-fno-stack-protector -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables \
+		-fuse-ld=lld -nostartfiles -T script.ld -Wl,-z -Wl,now -Wl,-z -Wl,norelro -Wl,-s \
+		-o $@ $<
+	strip --strip-all --strip-unneeded --strip-section-headers $@
 
 clean:
-	rm -f env env.o env.s
-
-env.s: env.c
-	gcc -S -nostdinc -nostdlib -nodefaultlibs -nostartfiles -ffreestanding \
-		-fno-stack-protector -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables \
-		-Os -static -o $@ $<
-
-env.o: env.s
-	as -o $@ $<
-
-env: env.o
-	ld -z now -z norelro -s \
-		-T script.ld \
-		$< -o $@
-	strip -o $@ -s \
-		-R '.gnu.hash' -R '.gnu.version' \
-		-R '.tm_clone_table' \
-		-R '.eh_frame*' \
-		-R '.note*' \
-		-R '.comment*' \
-		--strip-unneeded $@
-	python3 section-header-stripper.py $@ $@
+	rm -f env
